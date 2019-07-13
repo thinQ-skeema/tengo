@@ -59,9 +59,12 @@ func TestParseFlavor(t *testing.T) {
 		{"10.1.40-MariaDB-0ubuntu0.18.04.1", "Ubuntu 18.04", FlavorMariaDB101},
 		{"10.2.15-MariaDB-log", "MariaDB Server", FlavorMariaDB102},
 		{"10.3.8-MariaDB-log", "Source distribution", FlavorMariaDB103},
-		{"10.3.8-0ubuntu0.18.04.1", "(Ubuntu)", FlavorMariaDB103}, // due to major version >= 10 --> MariaDB
+		{"10.3.16-MariaDB", "Homebrew", FlavorMariaDB103},
+		{"10.3.8-0ubuntu0.18.04.1", "(Ubuntu)", FlavorMariaDB103}, // due to major version 10 --> MariaDB
+		{"5.7.26", "Homebrew", FlavorMySQL57},                     // due to major version 5 --> MySQL
+		{"8.0.13", "Homebrew", FlavorMySQL80},                     // due to major version 8 --> MySQL
 		{"webscalesql", "webscalesql", FlavorUnknown},
-		{"5.6.27", "webscalesql", Flavor{VendorUnknown, 5, 6}},
+		{"6.0.3", "Source distribution", Flavor{VendorUnknown, 6, 0}},
 	}
 	for _, tc := range cases {
 		fl := ParseFlavor(tc.versionString, tc.versionComment)
@@ -309,6 +312,30 @@ func TestInnoRowFormatReqs(t *testing.T) {
 	FlavorMySQL80.InnoRowFormatReqs("SUPER-DUPER-FORMAT")
 	if !didPanic {
 		t.Errorf("Expected InnoRowFormatReqs to panic on invalid format, but it did not")
+	}
+}
+
+func TestSortedForeignKeys(t *testing.T) {
+	type testcase struct {
+		receiver Flavor
+		expected bool
+	}
+	cases := []testcase{
+		{FlavorMySQL55, false},
+		{FlavorMySQL56, true},
+		{FlavorMySQL80, true},
+		{FlavorPercona55, false},
+		{FlavorPercona57, true},
+		{FlavorMariaDB101, true},
+		{FlavorMariaDB102, true},
+		{FlavorMariaDB103, true},
+		{NewFlavor("unknown:5.6"), true},
+	}
+	for _, tc := range cases {
+		actual := tc.receiver.SortedForeignKeys()
+		if actual != tc.expected {
+			t.Errorf("Expected %s.SortedForeignKeys() to return %t, instead found %t", tc.receiver, tc.expected, actual)
+		}
 	}
 }
 
